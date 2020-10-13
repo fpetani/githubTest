@@ -1,0 +1,8 @@
+
+		with B select
+			srl1 <=
+			A when "0000",
+			"0" & A(3 downto 1) when "0001",
+			"00" & A(3 downto 2) when "0010",
+			"000" & A(3) when "0011",
+			"0000" when others;

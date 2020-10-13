@@ -1,0 +1,1 @@
+double mnozi(double a, double b);

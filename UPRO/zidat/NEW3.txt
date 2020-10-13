@@ -1,0 +1,298 @@
+package hr.fer.oop.taxigui;
+
+import java.awt.FlowLayout;
+import java.awt.GridLayout;
+import java.util.Date;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JTextField;
+import javax.swing.SpringLayout;
+import javax.swing.border.TitledBorder;
+
+/**
+ *
+ * @author Krešimir Pripužić <kresimir.pripuzic@fer.hr>
+ */
+public class NewFilterPanel extends JPanel {
+	
+	private static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+	private static final String[] DISTANCE_CONDITIONS = { "<", ">=" };
+
+	JCheckBox skipCheckBox;
+	JTextField skipTextField;
+	JCheckBox leaveCheckBox;
+	JTextField leaveTextField;
+	JCheckBox paymentTypeCheckBox;
+	JRadioButton cashButton;
+	JRadioButton cardButton;
+	JRadioButton unknownButton;
+	JCheckBox distanceCheckBox;
+	JComboBox<String> distanceCondition;
+	JTextField distanceTextField;
+	JCheckBox dateTimeCheckBox;
+	JTextField dateTimeTextField;
+	JCheckBox tripTimeInSecsCheckBox;
+	JTextField tripTimeInSecsTextField;
+
+	
+
+	public NewFilterPanel() {
+		super.setLayout(new SpringLayout());
+
+		// row 0
+		skipCheckBox = new JCheckBox("Skip records?");
+		super.add(skipCheckBox);
+		super.add(new JLabel("Number of records to skip:"));
+		skipTextField = new JTextField(20);
+		super.add(skipTextField);
+
+		// row 1
+		leaveCheckBox = new JCheckBox("Leave records?");
+		super.add(leaveCheckBox);
+		super.add(new JLabel("Number of records to leave:"));
+		leaveTextField = new JTextField(20);
+		super.add(leaveTextField);
+
+		// row 2
+		paymentTypeCheckBox = new JCheckBox("Filter by payment type?");
+		super.add(paymentTypeCheckBox);
+		super.add(new JLabel(""));
+		JPanel paymentTypePanel = new JPanel();
+		paymentTypePanel.setBorder(
+				BorderFactory.createTitledBorder(null, "PaymentType?", TitledBorder.LEADING, TitledBorder.TOP));
+		super.add(paymentTypePanel);
+		paymentTypePanel.setLayout(new GridLayout(0, 1, 0, 0));
+		ButtonGroup paymentTypeGroup = new ButtonGroup();
+		cashButton = new JRadioButton("Cash (CHK)");
+		paymentTypePanel.add(cashButton);
+		paymentTypeGroup.add(cashButton);
+		cardButton = new JRadioButton("Card (CRD)");
+		paymentTypePanel.add(cardButton);
+		paymentTypeGroup.add(cardButton);
+		unknownButton = new JRadioButton("Unknown (UNK)");
+		paymentTypePanel.add(unknownButton);
+		paymentTypeGroup.add(unknownButton);
+
+		// row 4
+		distanceCheckBox = new JCheckBox("Limit distance?");
+		super.add(distanceCheckBox);
+		distanceCondition = new JComboBox(DISTANCE_CONDITIONS);
+		super.add(distanceCondition);
+		distanceTextField = new JTextField(20);
+		super.add(distanceTextField);
+		
+		//row 5
+		dateTimeCheckBox = new JCheckBox("Records from a certain date?");
+		super.add(dateTimeCheckBox);
+		super.add(new JLabel("What date:"));
+		dateTimeTextField = new JTextField(20);
+		super.add(dateTimeTextField);
+
+		//row 6
+		tripTimeInSecsCheckBox = new JCheckBox("Filter by trip time?");
+		super.add(tripTimeInSecsCheckBox);
+		super.add(new JLabel("format: \"min-max\""));
+		tripTimeInSecsTextField = new JTextField(20);
+		super.add(tripTimeInSecsTextField);
+		
+
+
+		
+
+		SpringUtilities.makeCompactGrid(this, 6, 3, 0, 0, 5, 5);
+	}
+
+	public TaxiRideFilter getFilter() {
+		TaxiRideFilter filter = new TaxiRideFilter();
+
+		if (skipCheckBox.isSelected()) {
+			filter.toSkip(true);
+			filter.setNumberToSkip(Integer.parseInt(skipTextField.getText()));
+		} else {
+			filter.toSkip(false);
+		}
+		
+		if(tripTimeInSecsCheckBox.isSelected()) {
+			String[] split = new String[2];
+			split = tripTimeInSecsTextField.getText().split("-");
+			filter.toFilterBytripTime(true);
+			filter.setminTripDuration(Integer.parseInt(split[0]));
+			filter.setmaxTripDuration(Integer.parseInt(split[1]));
+		} else {
+			filter.toFilterBytripTime(false);
+		}
+		
+		
+		if (dateTimeCheckBox.isSelected()) {
+			filter.toFilterBydateTime(true);
+			try {
+				filter.setdateTime(DATE_FORMATTER.parse(dateTimeTextField.getText()));
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
+		} else {
+			filter.toFilterBydateTime(false);
+		}
+
+		if (leaveCheckBox.isSelected()) {
+			filter.toLeave(true);
+			filter.setNumberToLeave(Integer.parseInt(leaveTextField.getText()));
+		} else {
+			filter.toLeave(false);
+		}
+
+		if (paymentTypeCheckBox.isSelected()) {
+			filter.setToFilterByPaymentType(true);
+			if (cashButton.isSelected()) {
+				filter.setPaymentType("CSH");
+			} else if (cardButton.isSelected()) {
+				filter.setPaymentType("CRD");
+			} else {
+				filter.setPaymentType("UNK");
+			}
+		} else {
+			filter.setToFilterByPaymentType(false);
+		}
+		
+
+		if (distanceCheckBox.isSelected()) {
+			filter.toLimitDistance(true);
+			filter.setDistanceCondition((String) distanceCondition.getSelectedItem());
+			filter.setDistanceToLimit(Double.parseDouble(distanceTextField.getText()));
+		} else {
+			filter.toLimitDistance(false);
+		}
+
+		return filter;
+	}
+
+	public class TaxiRideFilter {
+
+		private boolean toSkip, toLeave, toFilterByPaymentType, toLimitDistance, toFilterBydateTime, toFilterBytripTime;
+		private int numberToSkip, numberToLeave, minTripDuration, maxTripDuration;
+		private double distanceToLimit;
+		private String paymentType, distanceCondition;
+		private Date dateTime;
+		
+		public boolean toFilterBytripTime() {
+			return toFilterBytripTime;
+		}
+		
+		public void toFilterBytripTime(boolean toFilterBytripTime) {
+			this.toFilterBytripTime = toFilterBytripTime;
+		}
+		
+		public int getminTripDuration() {
+			return minTripDuration;
+		}
+		
+		public void setminTripDuration(int minTripDuration) {
+			this.minTripDuration = minTripDuration;
+		}
+		
+		public int getmaxTripDuration() {
+			return maxTripDuration;
+		}
+		
+		public void setmaxTripDuration(int maxTripDuration) {
+			this.maxTripDuration = maxTripDuration;
+		}
+		
+		
+		public boolean toFilterBydateTime() {
+			return toFilterBydateTime;
+		}
+		
+		public void toFilterBydateTime(boolean toFilterBydateTime) {
+			this.toFilterBydateTime = toFilterBydateTime;
+		}
+		
+		public Date getdateTime() {
+			return dateTime;
+		}
+		
+		public void setdateTime(Date dateTime) {
+			this.dateTime = dateTime;
+		}
+
+		public boolean toSkip() {
+			return toSkip;
+		}
+
+		public void toSkip(boolean toSkip) {
+			this.toSkip = toSkip;
+		}
+
+		public boolean toLeave() {
+			return toLeave;
+		}
+
+		public void toLeave(boolean toLeave) {
+			this.toLeave = toLeave;
+		}
+
+		public boolean toFilterByPaymentType() {
+			return toFilterByPaymentType;
+		}
+
+		public void setToFilterByPaymentType(boolean toFilterByPaymentType) {
+			this.toFilterByPaymentType = toFilterByPaymentType;
+		}
+
+		public boolean toLimitDistance() {
+			return toLimitDistance;
+		}
+
+		public void toLimitDistance(boolean toLimitDistance) {
+			this.toLimitDistance = toLimitDistance;
+		}
+
+		public int getNumberToSkip() {
+			return numberToSkip;
+		}
+
+		public void setNumberToSkip(int numberToSkip) {
+			this.numberToSkip = numberToSkip;
+		}
+
+		public int getNumberToLeave() {
+			return numberToLeave;
+		}
+
+		public void setNumberToLeave(int numberToLeave) {
+			this.numberToLeave = numberToLeave;
+		}
+
+		public double getDistanceToLimit() {
+			return distanceToLimit;
+		}
+
+		public void setDistanceToLimit(double distanceToLimit) {
+			this.distanceToLimit = distanceToLimit;
+		}
+
+		public String getPaymentType() {
+			return paymentType;
+		}
+
+		public void setPaymentType(String paymentType) {
+			this.paymentType = paymentType;
+		}
+
+		public String getDistanceCondition() {
+			return distanceCondition;
+		}
+
+		public void setDistanceCondition(String distanceCondition) {
+			this.distanceCondition = distanceCondition;
+		}
+	}
+}

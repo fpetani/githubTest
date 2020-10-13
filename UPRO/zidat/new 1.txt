@@ -1,0 +1,113 @@
+package lab6.drugi.zadatak;
+
+import java.util.LinkedList;
+import java.util.List;
+
+public class Board{
+	private int width;
+	private int height;
+	private boolean cells[][];
+	private boolean nextCells[][];
+	public static int counter[][];
+	
+	
+	private List<BoardListener> listeners;
+
+	public Board(int width,int height) {
+		if(width<0) throw new IllegalArgumentException("Sirina mora biti veca od nula");
+		if(height<0) throw new IllegalArgumentException("Visina mora biti veca od nula");
+		
+		this.height = height;
+		this.width = width;
+		cells = new boolean[width][height];
+		nextCells = new boolean[width][height];
+		counter = new int[30][30];
+		listeners = new LinkedList<>();
+	}
+	
+	public boolean isCellAlive(int x,int y) {
+		int normX = normalizeX(x);
+		int normY = normalizeX(y);
+		return cells[normX][normY];
+	}
+	
+	public int getWidth() {
+		return width;
+	}
+
+	public int getHeight() {
+		return height;
+	}
+	
+	public void setCell(int x,int y,boolean state) {
+		int normX = normalizeX(x);
+		int normY = normalizeY(y);
+		cells[normX][normY] = state;
+	}
+
+	private int normalizeY(int y) {
+		int rez  = y;
+		if (rez < 0)
+			rez += height;
+		return rez % height;
+	}
+
+	private int normalizeX(int x) {
+		int rez = x;
+		if(rez<0)
+			rez+=width;
+		return rez % width;
+	}
+	
+	public int countAliveNeighbors(int x, int y) {
+		int result = 0;
+		
+		if(isCellAlive(x-1, y-1)) result++;
+		if(isCellAlive(x  , y-1)) result++;
+		if(isCellAlive(x+1, y-1)) result++;
+
+		if(isCellAlive(x-1, y  )) result++;
+		if(isCellAlive(x+1, y  )) result++;
+
+		if(isCellAlive(x-1, y+1)) result++;
+		if(isCellAlive(x  , y+1)) result++;
+		if(isCellAlive(x+1, y+1)) result++;
+			
+		return result;
+	}
+	
+	public void playOneIteration() {
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				if (BoardFrame.isDeadSelected()) {
+					if(!(isCellAlive(x, y))) {
+						counter[x][y] += 1;
+					}
+				}
+				if (BoardFrame.isAliveSelected()) {
+					if((isCellAlive(x, y))) {
+						counter[x][y] +=1;
+					}
+				}
+				nextCells[x][y] = Rules.futureOf(isCellAlive(x, y), countAliveNeighbors(x, y));
+			}
+		}
+		
+		boolean tempCells[][] = nextCells;
+		nextCells = cells;
+		cells = tempCells;
+		
+		listeners.forEach(l -> l.boardChanged(this));
+	}
+
+	public void addListener(BoardListener listener) {
+		listeners.add(listener);
+	}
+
+	public void removeListener(BoardListener listener) {
+		listeners.remove(listener);
+	}
+
+
+	
+}
